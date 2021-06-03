@@ -15,6 +15,11 @@ fs.writeFile("covid"+day+""+month+""+year+".txt","", function(err){
 
 (async () => {
     const browser = await puppeteer.launch();
+
+    // IF RUNNING IN PI
+    /*const browser = await puppeteer.launch({
+        executablePath: '/usr/bin/chromium-browser'
+      })*/
     const page = await browser.newPage();
 
     await page.goto(url, {timeout: 0});
@@ -22,22 +27,41 @@ fs.writeFile("covid"+day+""+month+""+year+".txt","", function(err){
     await page.click('a[href="#nav-yesterday"]');
     await page.waitForSelector('#main_table_countries_yesterday tr[style=""]');
 
-
+   
     let paises = await page.evaluate(() => {
         
         const elements = document.querySelectorAll('#main_table_countries_yesterday tr[style=""]');
 
         let countries = "";
         let contador = 1;
+        let spain = false;
+        let array = []
         for(let element of elements){
             let fila = contador+"- ";
             fila+=element.querySelector('a[href*="country/"]').textContent+": ";
             fila+="Casos: "+element.querySelectorAll('td')[2].textContent+", ";
             fila+="Casos nuevos: "+element.querySelectorAll('td')[3].textContent+"\n";
-            countries+=fila;
+            array[contador] = fila;
             contador++;
-            if(contador>10){
+            if(spain){
                 break;
+            }
+            if(element.querySelector('a[href*="country/"]').textContent.includes("Spain")){
+                spain = true;
+            }
+        }
+        if(array.length <= 10){
+            for(let fila of array){
+                countries+=fila;
+            }
+        }
+        else{
+            for(let i = 1; i <= 5; i++){
+                countries+=array[i];
+            }
+            countries+=". . . \n"
+            for(let i = contador-4; i < contador; i++){
+                countries+=array[i];
             }
         }
         return countries;
@@ -54,4 +78,6 @@ fs.writeFile("covid"+day+""+month+""+year+".txt","", function(err){
 
     await process.exit();
 })()
+
+
 
